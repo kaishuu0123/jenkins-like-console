@@ -1,0 +1,65 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <div class="form-group">
+        <input id="command" class="form-control" type="text" placeholder="command"/>
+      </div>
+      <pre id="command_log">コマンドを入力してください</pre>
+    </div>
+    <script src="https://code.jquery.com/jquery-2.1.3.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      $(function() {
+        var fetchedBytes = 0;
+        function fetchNext(e, href) {
+          console.log(fetchedBytes);
+          $.ajax({
+            url: href,
+            type: 'POST',
+            data: {
+              start : fetchedBytes
+            }
+          })
+          .done(function(data, textStatus, jqXHR) {
+            $("#command_log").append(data);
+            if (jqXHR.getResponseHeader('X-MORE-DATA') == "true") {
+              fetchedBytes += Number(jqXHR.getResponseHeader('Content-Length'));
+              setTimeout(function(){fetchNext(e, href);}, 1000);
+            }
+          })
+          .fail(function(data, textStatus) {
+            alert(textStatus);
+          });
+        }
+
+        function startCommand() {
+          var cmd = $("#command").val();
+          $.ajax({
+            url: "/startCommand",
+            type: 'POST',
+            data : {
+              command: cmd
+            }
+          })
+          .done(function(data, textStatus, jqXHR) {
+            $("#command_log").empty();
+            fetchNext($("#command_log"), "/progressiveHtml");
+          })
+          .fail(function(jqXHR, textStatus, errorThrown) {
+            alert(errorThrown);
+          });
+        }
+
+        $("#command").keypress(function (e) {
+          if (e.which && e.which == 13) {
+            startCommand();
+          }
+        })
+      });
+    </script>
+  </body>
+</html>
